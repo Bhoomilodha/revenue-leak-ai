@@ -40,7 +40,7 @@ RevenueLeak AI/
 
 **Find where revenue escapes. Recover what matters.**
 
-RevenueLeak AI is a production-grade Revenue Recovery Intelligence Layer designed for digital merchants (built for the Razorpay AI Buildathon). It continuously monitors transactional anomalies, checkout drop-offs, and subscription renewal declines, calculates recovery probability using a trained machine learning model, validates recommendations against merchant guardrails, and safely simulates bounded recovery campaigns.
+RevenueLeak AI is a production-grade Revenue Recovery Intelligence Layer designed for digital merchants. It continuously monitors transactional anomalies, checkout drop-offs, and subscription renewal declines, calculates recovery probability using a trained machine learning model, validates recommendations against merchant guardrails, and safely simulates bounded recovery campaigns.
 
 ---
 
@@ -89,7 +89,7 @@ We train a **Random Forest Classifier** (`RandomForestClassifier(n_estimators=10
 2. It is highly resistant to overfitting on synthetic data and outputs well-calibrated class probabilities (`predict_proba`) which we use directly as the recovery probability.
 
 > [!NOTE]
-> This model is trained on synthetic historical transactional behavior and is designed for demo and buildathon purposes. It does not represent real-world production payment behavior.
+> This model is trained on synthetic historical transactional behavior and is designed for demo and evaluation purposes. It does not represent real-world production payment behavior.
 
 #### Features Used
 The model predicts recovery success using the following features:
@@ -1852,9 +1852,6 @@ export default function Home({ onEnterApp }: HomeProps) {
           </div>
           <div>
             <span className="text-sm font-black tracking-tight uppercase text-white">REVENUELEAK AI</span>
-            <span className="hidden sm:inline-block ml-2 text-[10px] bg-brandBlue/15 text-brandBlue border border-brandBlue/30 px-2 py-0.5 rounded font-mono font-bold">
-              BUILDATHON MVP
-            </span>
           </div>
         </div>
 
@@ -2291,7 +2288,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
           <div className="relative flex py-2 items-center">
             <div className="flex-grow border-t border-zinc-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Buildathon Quick Pass</span>
+            <span className="flex-shrink mx-4 text-[9px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Instant Demo Access</span>
             <div className="flex-grow border-t border-zinc-800"></div>
           </div>
 
