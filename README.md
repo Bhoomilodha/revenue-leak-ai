@@ -154,17 +154,16 @@ To prevent AI hallucinations or abusive automation, all proposed recovery action
 
 ### Prerequisites
 - **Python 3.9+**
-- **Node.js 18+** & 
-pm
+- **Node.js 18+** & `npm`
 
 ### Step 1: Clone the Repository
-`ash
-git clone https://github.com/<your-username>/revenue-leak-ai.git
+```bash
+git clone https://github.com/Bhoomilodha/revenue-leak-ai.git
 cd revenue-leak-ai
-`
+```
 
 ### Step 2: Backend Setup
-`ash
+```bash
 # 1. Install Python packages
 pip install -r requirements.txt
 
@@ -174,13 +173,13 @@ python backend/ai_engine.py
 
 # 3. Start the FastAPI backend
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
-`
-* Backend will be running at: http://127.0.0.1:8000
-* Interactive API Swagger Docs: http://127.0.0.1:8000/docs
+```
+- The local backend will be running on your machine at: `http://127.0.0.1:8000`
+- Interactive API Swagger Docs: `http://127.0.0.1:8000/docs`
 
 ### Step 3: Frontend Setup
 In a new terminal window:
-`ash
+```bash
 # 1. Navigate to frontend directory
 cd frontend
 
@@ -189,14 +188,14 @@ npm install
 
 # 3. Start Vite dev server
 npm run dev
-`
-* Open your browser at: http://localhost:5173
+```
+- Open your browser to test your local instance at: `http://localhost:5173`
 
 ### Step 4: Run Backend Tests
 To verify all policy rules and ML inference workflows:
-`ash
+```bash
 python -m pytest backend/test_recovery.py
-`
+```
 *(All 4 test suites will run and pass).*
 
 ---
