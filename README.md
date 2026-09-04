@@ -1,38 +1,34 @@
 # 🛡️ RevenueLeak AI — Autonomous Revenue Recovery Intelligence
 
-> **A student-built fintech intelligence layer that detects, scores, and recovers leaked revenue across payment pipelines without annoying customers or violating gateway policies.**
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Open_Application-2563eb?style=for-the-badge)](https://revenueleakai-9e36d0.netlify.app)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Bhoomilodha/revenue-leak-ai)
+[![Tech Stack](https://img.shields.io/badge/Stack-React_18_•_TypeScript_•_FastAPI_•_Scikit--Learn-059669?style=for-the-badge)](#-tech-stack--engineering-choices)
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Active_Preview-emerald?style=for-the-badge&logo=netlify)](https://wonderful-belekoy-9e36d0.netlify.app)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-blue?style=for-the-badge&logo=github)](https://github.com/Bhoomilodha/revenue-leak-ai)
-
-🔗 **Live Interactive Web App**: [https://wonderful-belekoy-9e36d0.netlify.app](https://wonderful-belekoy-9e36d0.netlify.app)  
-Built with **React, TypeScript, FastAPI, Scikit-Learn, and SQLite**.  
-Created for buildathons and portfolio showcase to solve a real-world merchant problem in the Indian digital payment ecosystem.
+> 🔗 **Live Web Application**: **[https://revenueleakai-9e36d0.netlify.app](https://revenueleakai-9e36d0.netlify.app)**  
+> *(Click above to test the fully interactive application live in your browser — 24/7 active, no installation required)*
 
 ---
 
-## 📌 Why I Built This (The Real-World Problem)
+## ⚡ Executive Summary (For Reviewers)
 
-While studying digital payment gateways like **Razorpay**, I realized something surprising:  
-Online businesses in India lose anywhere between **5% to 15% of their total potential revenue** through silent payment leaks.
+Online merchants routinely lose between **5% to 15% of top-line revenue** to silent transaction failures: temporary UPI network timeouts, expired subscription cards, checkout cart dropouts, and forgotten B2B invoices.
 
-These leaks aren't because customers don't want to buy, but due to friction in the payment journey:
-- **Temporary bank & network dropouts**: UPI server timeouts, OTP delays, or momentary bank switch congestion.
-- **Cart & checkout dropouts**: Users entering checkout with intent but abandoning due to payment friction.
-- **Failed recurring subscriptions**: Mandate card expiry or insufficient balance on billing dates.
-- **Overdue invoices**: B2B payments sitting uncollected without intelligent follow-up.
+Traditional payment systems react in two flawed ways:
+1. **Passive write-offs**: Revenue is lost permanently, and the customer silently churns.
+2. **Blind retry bots**: Firing continuous automated retries that trigger issuing bank penalties, incur gateway fees, and annoy customers.
 
-### The Current Flawed Approaches
-Most merchants handle this in two bad ways:
-1. **Do nothing**: The revenue is written off, and the customer churns.
-2. **Blind retry bots**: Firing continuous automated retries. This leads to issuing bank penalties, excessive gateway fees, and frustrated customers who feel spammed.
+**RevenueLeak AI** is an intelligent **Revenue Recovery Layer** built for payment gateways like Razorpay. Instead of robotic retries, it uses **Machine Learning to evaluate recovery probability**, validates decisions against **Merchant Safety Guardrails**, and triggers the most respectful, optimal recovery channel (Smart UPI Link, Cooldown-based Retry, or VIP Human Escalation).
 
-### The Solution: RevenueLeak AI
-I designed **RevenueLeak AI** as a smart **Intelligence & Decision Layer** between the merchant and the payment gateway. Instead of blindly retrying, it answers four critical questions before taking action:
-1. *Where exactly is revenue leaking across the business?*
-2. *Which failed transactions actually have a high mathematical probability of being recovered?*
-3. *What is the most respectful, optimal recovery channel (Smart Retry, UPI Payment Link, Reminder, or Human Escalation)?*
-4. *Does this action comply with merchant safety rules (cooldown periods, retry caps, VIP thresholds)?*
+---
+
+## 🎯 The Core Problem & Comparison
+
+| Without RevenueLeak AI | With RevenueLeak AI |
+|---|---|
+| **Silent Revenue Bleed**: 5–15% revenue lost without visibility into where drop-offs happen. | **Pipeline Observability**: Real-time Leak Map tracking volume at risk across Checkout, Gateway, Subscriptions, and Invoicing. |
+| **Dumb Retries**: Repeating retries immediately on failed cards causes bank penalties. | **Predictive AI Scoring**: Random Forest ML model evaluates if a transaction has high recovery probability before taking action. |
+| **Spamming Customers**: Frequent reminder messages cause friction and customer churn. | **Policy Guardrails**: Hard quiet periods (cooldown window in hours) and max retry limits protect customer relationships. |
+| **VIP Customer Friction**: High-value enterprise deals treated with the same robotic retry as small carts. | **Intelligent Routing**: High-value transactions (₹10,000+) automatically route to human support managers. |
 
 ---
 
@@ -154,49 +150,39 @@ To prevent AI hallucinations or abusive automation, all proposed recovery action
 
 ---
 
-## 🛠️ How to Run Locally
+## 🛠️ Local Development & Setup (Optional)
+
+> **Quick Note for Reviewers**: You can explore the full interactive application directly on the **[Live Web App](https://revenueleakai-9e36d0.netlify.app)** without installing anything. The steps below are only needed if you wish to run or inspect the code locally.
 
 ### Prerequisites
-- **Python 3.9+**
-- **Node.js 18+** & `npm`
+- Python 3.9+
+- Node.js 18+ & `npm`
 
-### Step 1: Clone the Repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/Bhoomilodha/revenue-leak-ai.git
 cd revenue-leak-ai
 ```
 
-### Step 2: Backend Setup
+### 2. Backend Setup
 ```bash
-# 1. Install Python packages
+# Install dependencies & initialize model
 pip install -r requirements.txt
-
-# 2. Initialize the database and train the ML model
 python backend/database.py
 python backend/ai_engine.py
 
-# 3. Start the FastAPI backend
+# Start FastAPI server
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-- The local backend will be running on your machine at: `http://127.0.0.1:8000`
-- Interactive API Swagger Docs: `http://127.0.0.1:8000/docs`
 
-### Step 3: Frontend Setup
-In a new terminal window:
+### 3. Frontend Setup
 ```bash
-# 1. Navigate to frontend directory
 cd frontend
-
-# 2. Install dependencies
 npm install
-
-# 3. Start Vite dev server
 npm run dev
 ```
-- Open your browser to test your local instance at: `http://localhost:5173`
 
-### Step 4: Run Backend Tests
-To verify all policy rules and ML inference workflows:
+### 4. Run Automated Backend Tests
 ```bash
 python -m pytest backend/test_recovery.py
 ```
