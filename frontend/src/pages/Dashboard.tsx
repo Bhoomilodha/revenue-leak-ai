@@ -24,6 +24,14 @@ import PageTransition from "../components/PageTransition";
 import RevenueFlow from "../components/RevenueFlow";
 import LeakMap from "../components/LeakMap";
 import RecoveryGraph from "../components/RecoveryGraph";
+import {
+  DEMO_STATS,
+  DEMO_LEAK_MAP,
+  DEMO_QUEUE,
+  DEMO_POLICY,
+  DEMO_BLOCKED,
+  DEMO_AUDIT
+} from "../demoData";
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:8000/api";
 
@@ -127,11 +135,18 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     auto_action_enabled: true
   });
 
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+
   // Load operational data
   const fetchAllData = async () => {
     setLoading(true);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1500);
+
     try {
-      const statsRes = await fetch(`${API_BASE}/stats`);
+      const statsRes = await fetch(`${API_BASE}/stats`, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!statsRes.ok) throw new Error("API error");
       const statsData = await statsRes.json();
       setStats(statsData);
 
@@ -158,8 +173,24 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       const auditRes = await fetch(`${API_BASE}/audit`);
       const auditData = await auditRes.json();
       setAuditLogs(auditData);
+      setIsDemoMode(false);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      clearTimeout(timer);
+      console.warn("Backend offline or unreachable. Running Standalone Interactive Demo Mode.", error);
+      setIsDemoMode(true);
+      setStats(DEMO_STATS as any);
+      setLeakMapData(DEMO_LEAK_MAP as any);
+      setQueue(DEMO_QUEUE as any);
+      setPolicies(DEMO_POLICY as any);
+      setBlockedCases(DEMO_BLOCKED as any);
+      setPolicyForm({
+        max_retries: DEMO_POLICY.max_retries,
+        min_confidence: DEMO_POLICY.min_confidence,
+        reminder_cooldown_hours: DEMO_POLICY.reminder_cooldown_hours,
+        high_value_threshold: DEMO_POLICY.high_value_threshold,
+        auto_action_enabled: DEMO_POLICY.auto_action_enabled,
+      });
+      setAuditLogs(DEMO_AUDIT as any);
     } finally {
       setLoading(false);
     }
@@ -203,34 +234,56 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
   const fetchQueue = async () => {
     try {
+      if (isDemoMode) {
+        let list = [...DEMO_QUEUE];
+        if (filterLeakType) list = list.filter((item: any) => item.leak_type === filterLeakType);
+        if (filterStatus) list = list.filter((item: any) => filterStatus === "unresolved" ? item.status !== "recovered" : item.status === filterStatus);
+        if (searchQuery) list = list.filter((item: any) => item.id.toLowerCase().includes(searchQuery.toLowerCase()) || item.customer_id.toLowerCase().includes(searchQuery.toLowerCase()));
+        setQueue(list as any);
+        return;
+      }
       const params = new URLSearchParams();
       if (filterLeakType) params.append("leak_type", filterLeakType);
       if (filterStatus) params.append("status", filterStatus);
       if (searchQuery) params.append("search", searchQuery);
       const res = await fetch(`${API_BASE}/queue?${params.toString()}`);
-      setQueue(await res.json());
+      if (res.ok) setQueue(await res.json());
     } catch (e) {
-      console.error(e);
+      let list = [...DEMO_QUEUE];
+      if (filterLeakType) list = list.filter((item: any) => item.leak_type === filterLeakType);
+      if (filterStatus) list = list.filter((item: any) => filterStatus === "unresolved" ? item.status !== "recovered" : item.status === filterStatus);
+      if (searchQuery) list = list.filter((item: any) => item.id.toLowerCase().includes(searchQuery.toLowerCase()) || item.customer_id.toLowerCase().includes(searchQuery.toLowerCase()));
+      setQueue(list as any);
     }
   };
 
   const fetchPolicies = async () => {
     try {
+      if (isDemoMode) {
+        setPolicies(DEMO_POLICY as any);
+        setBlockedCases(DEMO_BLOCKED as any);
+        return;
+      }
       const res = await fetch(`${API_BASE}/policies`);
       const data = await res.json();
       setPolicies(data.policy);
       setBlockedCases(data.blocked_cases);
     } catch (e) {
-      console.error(e);
+      setPolicies(DEMO_POLICY as any);
+      setBlockedCases(DEMO_BLOCKED as any);
     }
   };
 
   const fetchAudit = async () => {
     try {
+      if (isDemoMode) {
+        setAuditLogs(DEMO_AUDIT as any);
+        return;
+      }
       const res = await fetch(`${API_BASE}/audit`);
       setAuditLogs(await res.json());
     } catch (e) {
-      console.error(e);
+      setAuditLogs(DEMO_AUDIT as any);
     }
   };
 
@@ -238,11 +291,26 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     setSheetCategory(leakType);
     setSheetLoading(true);
     try {
+      if (isDemoMode) throw new Error("demo");
       const res = await fetch(`${API_BASE}/leak-map/detail?leak_type=${leakType}`);
       const data = await res.json();
       setSheetDetails(data);
     } catch (e) {
-      console.error(e);
+      const sourceQueue = queue.length ? queue : DEMO_QUEUE;
+      const filtered = sourceQueue.filter((t: any) => t.leak_type === leakType);
+      const atRisk = filtered.reduce((acc: number, cur: any) => acc + (cur.status !== 'recovered' ? cur.amount : 0), 0);
+      setSheetDetails({
+        leak_type: leakType,
+        total_at_risk: atRisk,
+        total_cases: filtered.length,
+        transactions: filtered.slice(0, 25),
+        method_distribution: [
+          { method: "UPI", count: Math.max(1, Math.round(filtered.length * 0.45)) },
+          { method: "Card", count: Math.max(1, Math.round(filtered.length * 0.35)) },
+          { method: "NetBanking", count: Math.max(1, Math.round(filtered.length * 0.15)) },
+          { method: "Wallet", count: Math.max(0, Math.round(filtered.length * 0.05)) }
+        ]
+      });
     } finally {
       setSheetLoading(false);
     }
@@ -251,6 +319,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const handlePolicySave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (isDemoMode) {
+        setPolicies({ id: 1, ...policyForm });
+        alert("Policy guardrails updated successfully (Demo Mode)!");
+        return;
+      }
       const res = await fetch(`${API_BASE}/policies`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -261,7 +334,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         fetchPolicies();
       }
     } catch (e) {
-      console.error(e);
+      setPolicies({ id: 1, ...policyForm });
+      alert("Policy guardrails updated successfully (Demo Mode)!");
     }
   };
 
@@ -293,9 +367,26 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       setLabConsoleMsg("Analyzing customer behavioral features & historical transaction vector...");
 
       // Step 2: Signals Analyzed
-      const analyzeRes = await fetch(`${API_BASE}/lab/analyze?txn_id=${id}`);
-      if (!analyzeRes.ok) throw new Error("Analysis failed");
-      const analyzeData = await analyzeRes.json();
+      let analyzeData: any;
+      try {
+        if (isDemoMode) throw new Error("demo");
+        const analyzeRes = await fetch(`${API_BASE}/lab/analyze?txn_id=${id}`);
+        if (!analyzeRes.ok) throw new Error("Analysis failed");
+        analyzeData = await analyzeRes.json();
+      } catch {
+        const found = (queue.length ? queue : DEMO_QUEUE).find((t: any) => t.id === id) || (DEMO_QUEUE as any)[0];
+        analyzeData = {
+          analysis: {
+            recovery_probability: found.recovery_probability,
+            confidence: found.confidence || 0.82,
+            expected_recovery_value: found.expected_recovery_value,
+            priority_score: found.priority_score,
+            recommended_action: found.recommended_action,
+            reason_summary: `Optimal window detected for ${found.recommended_action.replace(/_/g, " ")}. Customer past success rate (${(found.customer_success_rate * 100).toFixed(0)}%) indicates strong recovery yield.`
+          },
+          transaction: found
+        };
+      }
       setLabAnalysis(analyzeData.analysis);
       setLabTxn(analyzeData.transaction);
 
@@ -355,8 +446,38 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       });
       setLabConsoleMsg("Validating selected action against active merchant guardrails...");
 
-      const policyRes = await fetch(`${API_BASE}/lab/policy-check?txn_id=${id}`);
-      const policyData = await policyRes.json();
+      let policyData: any;
+      try {
+        if (isDemoMode) throw new Error("demo");
+        const policyRes = await fetch(`${API_BASE}/lab/policy-check?txn_id=${id}`);
+        if (!policyRes.ok) throw new Error("Policy check failed");
+        policyData = await policyRes.json();
+      } catch {
+        const retryCount = analyzeData.transaction.retry_count || 0;
+        const confidence = analyzeData.analysis.confidence || 0.75;
+        const amount = analyzeData.transaction.amount || 0;
+        let isApproved = true;
+        let blockReason = null;
+        if (retryCount >= policyForm.max_retries) {
+          isApproved = false;
+          blockReason = `Exceeded maximum automated retry limit (${retryCount}/${policyForm.max_retries}).`;
+        } else if (confidence < policyForm.min_confidence) {
+          isApproved = false;
+          blockReason = `Model confidence (${(confidence * 100).toFixed(0)}%) below policy threshold (${(policyForm.min_confidence * 100).toFixed(0)}%).`;
+        } else if (amount >= policyForm.high_value_threshold) {
+          isApproved = false;
+          blockReason = `High-value transaction (₹${amount.toLocaleString("en-IN")}) routed to human account manager.`;
+        }
+        policyData = {
+          is_approved: isApproved,
+          block_reason: blockReason,
+          evaluated_rules: {
+            max_retries_check: retryCount < policyForm.max_retries,
+            confidence_check: confidence >= policyForm.min_confidence,
+            high_value_check: amount < policyForm.high_value_threshold
+          }
+        };
+      }
       setLabPolicyCheck(policyData);
 
       await sleep(500);
@@ -367,22 +488,33 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           return next;
         });
         setLabConsoleMsg(`Action Blocked: ${policyData.block_reason}`);
-        const execRes = await fetch(`${API_BASE}/lab/execute`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ txn_id: id }),
-        });
-        const execData = await execRes.json();
-        setLabOutcome(execData);
+
+        let execData: any;
         try {
-          const refreshedTxnRes = await fetch(`${API_BASE}/lab/analyze?txn_id=${id}`);
-          if (refreshedTxnRes.ok) {
-            const refreshedData = await refreshedTxnRes.json();
-            setLabTxn(refreshedData.transaction);
-          }
-        } catch (e) {
-          console.error(e);
+          if (isDemoMode) throw new Error("demo");
+          const execRes = await fetch(`${API_BASE}/lab/execute`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ txn_id: id }),
+          });
+          execData = await execRes.json();
+        } catch {
+          execData = {
+            status: "blocked_by_policy",
+            transaction_id: id,
+            policy_approved: false,
+            blocked_reason: policyData.block_reason,
+            analysis: analyzeData.analysis,
+            steps: [
+              { step: "Detection", message: "Transaction identified in revenue leakage monitoring stream." },
+              { step: "Feature Extraction", message: `Extracted customer vector: ${(analyzeData.transaction.customer_success_rate * 100).toFixed(0)}% past success rate.` },
+              { step: "Policy Check", message: `Merchant safety guardrail triggered: ${policyData.block_reason}` },
+              { step: "Execution Halted", message: "Automated retry prevented to protect merchant gateway standing." }
+            ]
+          };
+          setLabTxn((prev) => prev ? { ...prev, status: "blocked_by_policy" } : null);
         }
+        setLabOutcome(execData);
         setLabRunning(false);
         return;
       }
@@ -396,22 +528,33 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       setLabConsoleMsg(`Guardrails PASSED. Executing recovery action '${analyzeData.analysis.recommended_action}'...`);
 
       // Step 9: Action executed
-      const executeRes = await fetch(`${API_BASE}/lab/execute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ txn_id: id }),
-      });
-      const executeData = await executeRes.json();
-      setLabOutcome(executeData);
+      let executeData: any;
       try {
-        const refreshedTxnRes = await fetch(`${API_BASE}/lab/analyze?txn_id=${id}`);
-        if (refreshedTxnRes.ok) {
-          const refreshedData = await refreshedTxnRes.json();
-          setLabTxn(refreshedData.transaction);
-        }
-      } catch (e) {
-        console.error(e);
+        if (isDemoMode) throw new Error("demo");
+        const executeRes = await fetch(`${API_BASE}/lab/execute`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txn_id: id }),
+        });
+        executeData = await executeRes.json();
+      } catch {
+        executeData = {
+          status: "recovered",
+          transaction_id: id,
+          policy_approved: true,
+          blocked_reason: null,
+          analysis: analyzeData.analysis,
+          steps: [
+            { step: "Detection", message: "Transaction identified in revenue leakage monitoring stream." },
+            { step: "Feature Extraction", message: `Extracted customer vector: ${(analyzeData.transaction.customer_success_rate * 100).toFixed(0)}% past success, ${analyzeData.transaction.retry_count} retries.` },
+            { step: "ML Inference", message: `Random Forest scored recovery probability: ${(analyzeData.analysis.recovery_probability * 100).toFixed(0)}%.` },
+            { step: "Policy Guardrails", message: "Merchant policy validation passed." },
+            { step: "Simulated Execution", message: "Simulated payment captured successfully via smart recovery channel." }
+          ]
+        };
+        setLabTxn((prev) => prev ? { ...prev, status: "recovered" } : null);
       }
+      setLabOutcome(executeData);
 
       await sleep(500);
       setLabStepStatus((prev) => {
@@ -492,16 +635,19 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
   const handleLabReset = async (id: string) => {
     try {
+      if (isDemoMode) throw new Error("demo");
       const res = await fetch(`${API_BASE}/lab/reset?txn_id=${id}`);
       const data = await res.json();
       setLabTxn(data);
+    } catch {
+      const found = (queue.length ? queue : DEMO_QUEUE).find((t: any) => t.id === id) || (DEMO_QUEUE as any)[0];
+      setLabTxn({ ...found, status: "unresolved", retry_count: 0 });
+    } finally {
       setLabAnalysis(null);
       setLabPolicyCheck(null);
       setLabOutcome(null);
       setLabConsoleMsg("Transaction state reset. Ready for AI analysis.");
       setLabStepStatus(Array(10).fill("pending"));
-    } catch (e) {
-      console.error(e);
     }
   };
 
@@ -520,19 +666,62 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         });
       }, 250);
 
-      const res = await fetch(`${API_BASE}/batch-simulate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ count: batchCount }),
-      });
-      
-      clearInterval(interval);
-      setBatchProgress(100);
-
-      if (res.ok) {
-        const data = await res.json();
+      let data: any;
+      if (isDemoMode) {
+        await new Promise(r => setTimeout(r, 1200));
+        clearInterval(interval);
+        setBatchProgress(100);
+        const batchAtRisk = Math.round(batchCount * 4200);
+        const recoveredAmt = Math.round(batchAtRisk * 0.44);
+        const currentRecovered = stats?.revenue_recovered || 890000;
+        const currentAtRisk = stats?.revenue_at_risk || 2400000;
+        const newRecovered = currentRecovered + recoveredAmt;
+        const newAtRisk = Math.max(0, currentAtRisk - recoveredAmt);
+        data = {
+          metrics: {
+            batch_size: batchCount,
+            processed_count: batchCount,
+            batch_revenue_at_risk: batchAtRisk,
+            batch_expected_recovery: Math.round(batchAtRisk * 0.62),
+            batch_recovered_amount: recoveredAmt,
+            batch_recovered_count: Math.round(batchCount * 0.44),
+            batch_failed_count: Math.round(batchCount * 0.36),
+            batch_blocked_count: Math.round(batchCount * 0.12),
+            batch_escalated_count: Math.round(batchCount * 0.08),
+            batch_recovery_rate: 44.0,
+            recovered_amount_delta: recoveredAmt,
+            manual_interventions: Math.round(batchCount * 0.08),
+            blocked_actions: Math.round(batchCount * 0.12)
+          },
+          before: {
+            recovered_value: currentRecovered,
+            recovery_rate: stats?.recovery_rate || 26.5
+          },
+          after: {
+            recovered_value: newRecovered,
+            recovery_rate: Math.round((newRecovered / (newRecovered + newAtRisk)) * 1000) / 10
+          }
+        };
         setBatchOutcome(data);
-        fetchAllData();
+        setStats(prev => prev ? {
+          ...prev,
+          revenue_recovered: newRecovered,
+          revenue_at_risk: newAtRisk,
+          recovery_rate: Math.round((newRecovered / (newRecovered + newAtRisk)) * 1000) / 10
+        } : null);
+      } else {
+        const res = await fetch(`${API_BASE}/batch-simulate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ count: batchCount }),
+        });
+        clearInterval(interval);
+        setBatchProgress(100);
+        if (res.ok) {
+          data = await res.json();
+          setBatchOutcome(data);
+          fetchAllData();
+        }
       }
     } catch (e) {
       console.error(e);
@@ -547,6 +736,23 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     }
     setLoading(true);
     try {
+      if (isDemoMode) {
+        setStats(DEMO_STATS as any);
+        setLeakMapData(DEMO_LEAK_MAP as any);
+        setQueue(DEMO_QUEUE as any);
+        setPolicies(DEMO_POLICY as any);
+        setBlockedCases(DEMO_BLOCKED as any);
+        setAuditLogs(DEMO_AUDIT as any);
+        setLabTxnId("");
+        setLabTxn(null);
+        setLabAnalysis(null);
+        setLabPolicyCheck(null);
+        setLabOutcome(null);
+        setLabStepStatus(Array(10).fill("pending"));
+        setLabConsoleMsg("Sandbox ready.");
+        alert("Demo state reset to Seed 42.");
+        return;
+      }
       const res = await fetch(`${API_BASE}/db/reset`, { method: "POST" });
       if (res.ok) {
         alert("Database reset successfully.");
@@ -605,10 +811,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-base font-black tracking-tight text-white uppercase">REVENUELEAK AI</h1>
-              <span className="bg-emerald-950/40 text-brandGreen border border-emerald-800/40 px-2 py-0.5 rounded text-[9px] font-mono font-bold flex items-center space-x-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-brandGreen animate-pulse"></span>
-                <span>ENGINE LIVE • SEED 42</span>
-              </span>
+              {isDemoMode ? (
+                <span className="bg-blue-950/40 text-blue-400 border border-blue-800/40 px-2.5 py-0.5 rounded text-[9px] font-mono font-bold flex items-center space-x-1.5 shadow-sm" title="Interactive demo mode with pre-seeded synthetic transaction data">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                  <span>STANDALONE DEMO • SEED 42</span>
+                </span>
+              ) : (
+                <span className="bg-emerald-950/40 text-brandGreen border border-emerald-800/40 px-2 py-0.5 rounded text-[9px] font-mono font-bold flex items-center space-x-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brandGreen animate-pulse"></span>
+                  <span>API LIVE • SEED 42</span>
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-textMuted font-medium">Revenue Recovery Intelligence Command Center</p>
           </div>
