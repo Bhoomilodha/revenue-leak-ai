@@ -2,6 +2,10 @@
 
 > **A student-built fintech intelligence layer that detects, scores, and recovers leaked revenue across payment pipelines without annoying customers or violating gateway policies.**
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Active_Preview-emerald?style=for-the-badge&logo=netlify)](https://wonderful-belekoy-9e36d0.netlify.app)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-blue?style=for-the-badge&logo=github)](https://github.com/Bhoomilodha/revenue-leak-ai)
+
+🔗 **Live Interactive Web App**: [https://wonderful-belekoy-9e36d0.netlify.app](https://wonderful-belekoy-9e36d0.netlify.app)  
 Built with **React, TypeScript, FastAPI, Scikit-Learn, and SQLite**.  
 Created for buildathons and portfolio showcase to solve a real-world merchant problem in the Indian digital payment ecosystem.
 
