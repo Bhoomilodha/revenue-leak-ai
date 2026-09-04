@@ -102,7 +102,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
           <div className="relative flex py-2 items-center">
             <div className="flex-grow border-t border-zinc-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Buildathon Quick Pass</span>
+            <span className="flex-shrink mx-4 text-[9px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Instant Demo Access</span>
             <div className="flex-grow border-t border-zinc-800"></div>
           </div>
 

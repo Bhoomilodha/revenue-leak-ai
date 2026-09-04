@@ -85,9 +85,6 @@ export default function Home({ onEnterApp }: HomeProps) {
           </div>
           <div>
             <span className="text-sm font-black tracking-tight uppercase text-white">REVENUELEAK AI</span>
-            <span className="hidden sm:inline-block ml-2 text-[10px] bg-brandBlue/15 text-brandBlue border border-brandBlue/30 px-2 py-0.5 rounded font-mono font-bold">
-              BUILDATHON MVP
-            </span>
           </div>
         </div>
 
